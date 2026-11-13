@@ -1,0 +1,11 @@
+# Sao chép file này thành terraform.tfvars và điền giá trị thực của bạn.
+# LƯU Ý: File terraform.tfvars đã được chặn trong .gitignore, tuyệt đối không commit lên GitHub!
+
+subscription_id   = "12c98aeb-3bb3-4fcf-a8ea-516f7f2c888f"
+project_name      = "mtpm-saas"
+environment       = "dev"
+location          = "southeastasia"
+db_admin_username = "saasadmin"
+db_admin_password = "CHANGE_ME_StrongPassword123!"
+alert_email       = "vieldq2753@ut.edu.vn"
+oidc_issuer_uri   = ""
