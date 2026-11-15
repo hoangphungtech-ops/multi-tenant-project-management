@@ -39,3 +39,5 @@ npm-debug.log*
 .vscode/
 .DS_Store
 Thumbs.db
+
+prototypes/tv3-worker/build-tv3/

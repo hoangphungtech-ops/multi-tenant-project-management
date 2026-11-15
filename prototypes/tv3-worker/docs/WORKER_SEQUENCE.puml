@@ -1,0 +1,31 @@
+@startuml
+hide footbox
+title Secure Export Worker — verified tenant flows
+actor "TV4 Frontend" as UI
+participant "TV2 API" as API
+database "PostgreSQL\nexport_jobs" as DB
+queue "Azure Queue\nStorage" as Q
+participant "TV3 Export Worker" as W
+database "Memberships/Tasks\n(tenant-scoped)" as T
+collections "Private Blob\nStorage" as B
+participant "App Insights / Alert" as A
+UI -> API : POST export (authenticated)
+API -> DB : insert export_job(jobId, tenantId, userId)
+API -> Q : enqueue(jobId, claimedTenantId, requestId)
+Q -> W : deliver message (at least once)
+W -> DB : get authoritative export_job by jobId
+alt claimedTenantId != DB tenantId
+  W -> A : sanitized security log + mismatch metric
+  W -> Q : discard malicious message safely
+else tenant confirmed
+  W -> T : membership check + scoped task query
+  alt membership revoked
+    W -> DB : reject job (revoked)
+  else authorized
+    W -> DB : atomic lease/claim
+    W -> B : upload CSV to private deterministic path
+    W -> DB : complete with blob path
+    W -> Q : delete message only after complete
+  end
+end
+@enduml
