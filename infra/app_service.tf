@@ -31,13 +31,16 @@ resource "azurerm_linux_web_app" "api" {
   }
 
   app_settings = {
-    "SPRING_PROFILES_ACTIVE"                = "api"
+    "SPRING_PROFILES_ACTIVE"                = "api,azure"
     "SPRING_DATASOURCE_URL"                 = "jdbc:postgresql://${azurerm_postgresql_flexible_server.main.fqdn}:5432/saas_db?sslmode=require"
     "SPRING_DATASOURCE_USERNAME"            = var.db_admin_username
     "SPRING_DATASOURCE_PASSWORD"            = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.db_password.versionless_id})"
     "AZURE_STORAGE_ACCOUNT_NAME"            = azurerm_storage_account.main.name
+    "AZURE_STORAGE_BLOB_ENDPOINT"           = azurerm_storage_account.main.primary_blob_endpoint
+    "AZURE_STORAGE_QUEUE_ENDPOINT"          = azurerm_storage_account.main.primary_queue_endpoint
     "AZURE_STORAGE_CONTAINER_EXPORTS"       = azurerm_storage_container.exports.name
     "AZURE_STORAGE_QUEUE_EXPORTS"           = azurerm_storage_queue.export_jobs.name
+    "AZURE_STORAGE_QUEUE_POISON"            = azurerm_storage_queue.export_jobs_poison.name
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.main.connection_string
     "OIDC_ISSUER_URI"                       = var.oidc_issuer_uri
   }
@@ -45,7 +48,7 @@ resource "azurerm_linux_web_app" "api" {
   tags = local.tags
 }
 
-# 2. App Service cho Async Export Worker (SPRING_PROFILES_ACTIVE=worker)
+# 2. App Service cho Async Export Worker (SPRING_PROFILES_ACTIVE=worker,azure)
 # Chạy chung App Service Plan B1 để không phát sinh thêm chi phí cố định
 resource "azurerm_linux_web_app" "worker" {
   name                      = "app-${local.name_prefix}-worker-${random_string.suffix.result}"
@@ -69,11 +72,13 @@ resource "azurerm_linux_web_app" "worker" {
   }
 
   app_settings = {
-    "SPRING_PROFILES_ACTIVE"                = "worker"
+    "SPRING_PROFILES_ACTIVE"                = "worker,azure"
     "SPRING_DATASOURCE_URL"                 = "jdbc:postgresql://${azurerm_postgresql_flexible_server.main.fqdn}:5432/saas_db?sslmode=require"
     "SPRING_DATASOURCE_USERNAME"            = var.db_admin_username
     "SPRING_DATASOURCE_PASSWORD"            = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.db_password.versionless_id})"
     "AZURE_STORAGE_ACCOUNT_NAME"            = azurerm_storage_account.main.name
+    "AZURE_STORAGE_BLOB_ENDPOINT"           = azurerm_storage_account.main.primary_blob_endpoint
+    "AZURE_STORAGE_QUEUE_ENDPOINT"          = azurerm_storage_account.main.primary_queue_endpoint
     "AZURE_STORAGE_CONTAINER_EXPORTS"       = azurerm_storage_container.exports.name
     "AZURE_STORAGE_QUEUE_EXPORTS"           = azurerm_storage_queue.export_jobs.name
     "AZURE_STORAGE_QUEUE_POISON"            = azurerm_storage_queue.export_jobs_poison.name
