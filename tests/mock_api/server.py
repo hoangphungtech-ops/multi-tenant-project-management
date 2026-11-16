@@ -1,7 +1,7 @@
 """Mock API cho TV4 — CHỈ dùng để phát triển Frontend và tự kiểm chứng bộ test bảo mật.
 
 KHÔNG phải backend thật (TV2 sở hữu backend Spring Boot). Server này cài đặt đúng contract
-trong docs/tv4/API_CONTRACT_PROPOSAL.md, chỉ dùng Python standard library.
+trong docs/tv4/API_CONTRACT_PROPOSAL.ipynb, chỉ dùng Python standard library.
 
 Chạy:
     python tests/mock_api/server.py                 # an toàn (mặc định)

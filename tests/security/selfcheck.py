@@ -54,7 +54,7 @@ def run(vuln: str | None, test_file: str | None) -> bool:
         env = {**os.environ, "API_BASE_URL": base, "API_TARGET": "mock",
                "EVIDENCE_DIR": tempfile.mkdtemp(prefix=f"selfcheck-{vuln or 'secure'}-"),
                "PYTHONIOENCODING": "utf-8"}
-        args = [sys.executable, "-m", "pytest", "-q", "--no-header"] + ([test_file] if test_file else [])
+        args = [sys.executable, "-m", "pytest", "-q", "--no-header", "--color=no"] + ([test_file] if test_file else [])
         res = subprocess.run(args, cwd=HERE, env=env, capture_output=True, text=True, encoding="utf-8")
         tail = (res.stdout.strip().splitlines() or ["?"])[-1]
         if vuln is None:

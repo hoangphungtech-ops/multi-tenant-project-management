@@ -1,6 +1,6 @@
 """Đường dẫn endpoint — NƠI DUY NHẤT cần sửa khi TV2 chốt OpenAPI.
 
-Xem docs/tv4/API_CONTRACT_PROPOSAL.md.
+Xem docs/tv4/API_CONTRACT_PROPOSAL.ipynb.
 """
 API = "/api/v1"
 

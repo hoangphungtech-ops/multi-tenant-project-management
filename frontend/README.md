@@ -64,4 +64,4 @@ Deploy (TV1 gắn vào GitHub Actions): `Azure/static-web-apps-deploy@v1` với 
 `Authorization, Content-Type, X-Request-Id` và expose `X-Request-Id`.
 
 ## Khi TV2 chốt OpenAPI
-Chỉ cần sửa `src/api/client.ts` (đường dẫn) và `src/api/types.ts` (kiểu dữ liệu). Xem `docs/tv4/API_CONTRACT_PROPOSAL.md`.
+Chỉ cần sửa `src/api/client.ts` (đường dẫn) và `src/api/types.ts` (kiểu dữ liệu). Xem `docs/tv4/API_CONTRACT_PROPOSAL.ipynb`.

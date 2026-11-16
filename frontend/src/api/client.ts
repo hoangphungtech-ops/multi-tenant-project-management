@@ -1,5 +1,5 @@
 /**
- * API client. Đường dẫn endpoint theo docs/tv4/API_CONTRACT_PROPOSAL.md — khi TV2 chốt OpenAPI chỉ sửa file này.
+ * API client. Đường dẫn endpoint theo docs/tv4/API_CONTRACT_PROPOSAL.ipynb — khi TV2 chốt OpenAPI chỉ sửa file này.
  * Bảo mật: UI chỉ ẩn nút theo role cho tiện; quyền thật luôn do API kiểm tra (403/404).
  */
 import { config } from "../config";

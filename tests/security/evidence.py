@@ -20,7 +20,7 @@ SAS_PARAMS = {"sig", "se", "st", "sp", "sv", "sr", "skoid", "sktid", "skt", "ske
 SENSITIVE_JSON_KEYS = {"password", "access_token", "id_token", "refresh_token", "client_secret", "token", "secret"}
 
 _JWT_RE = re.compile(r"eyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]*")
-_BEARER_RE = re.compile(r"(Bearer\s+)[^\s\"',]+", re.IGNORECASE)
+_BEARER_RE = re.compile(r"(Bearer\s+)[^\s\"',]{12,}", re.IGNORECASE)
 _SIG_RE = re.compile(r"([?&](?:sig|se|skoid|sktid)=)[^&\s\"']+", re.IGNORECASE)
 _CONN_RE = re.compile(r"(AccountKey|SharedAccessSignature|Password|InstrumentationKey)=([^;\s\"']+)", re.IGNORECASE)
 
