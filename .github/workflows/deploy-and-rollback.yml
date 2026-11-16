@@ -1,0 +1,152 @@
+name: "CD — Azure Deploy & Rollback (App Service B1)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      action_mode:
+        description: "Chế độ chạy: deploy (build mới & đẩy lên Azure) hoặc rollback (quay về bản build trước)"
+        required: true
+        default: "deploy"
+        type: choice
+        options:
+          - deploy
+          - rollback
+      target_component:
+        description: "Thành phần cần deploy/rollback"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - both
+          - api
+          - worker
+      rollback_run_id:
+        description: "[Chỉ dùng khi chọn rollback] Nhập GitHub Actions Run ID của bản build ổn định trước đó"
+        required: false
+        default: ""
+        type: string
+      maven_project_dir:
+        description: "Thư mục chứa pom.xml (mặc định backend khi TV2 merge, hoặc prototypes/tv3-worker)"
+        required: true
+        default: "backend"
+        type: string
+
+permissions:
+  id-token: write
+  contents: read
+  actions: read
+
+jobs:
+  build-or-fetch-artifact:
+    name: "Prepare Release Artifact (${{ inputs.action_mode }})"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        if: inputs.action_mode == 'deploy'
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21 (Temurin)
+        if: inputs.action_mode == 'deploy'
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+          cache: "maven"
+
+      - name: Package Spring Boot JAR & Record Version Metadata
+        if: inputs.action_mode == 'deploy'
+        run: |
+          mvn -B -ntp -f "${{ inputs.maven_project_dir }}/pom.xml" clean package
+          mkdir -p release-bundle
+          cp "${{ inputs.maven_project_dir }}"/target/*.jar release-bundle/app.jar
+          echo "commit=${GITHUB_SHA}" > release-bundle/release-info.txt
+          echo "built_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> release-bundle/release-info.txt
+
+      - name: Archive Release Bundle for Future Rollback (Retained 30 Days)
+        if: inputs.action_mode == 'deploy'
+        uses: actions/upload-artifact@v4
+        with:
+          name: saas-release-bundle
+          path: release-bundle/
+          retention-days: 30
+
+      - name: Validate Rollback Run ID
+        if: inputs.action_mode == 'rollback'
+        run: |
+          if [ -z "${{ inputs.rollback_run_id }}" ]; then
+            echo "::error::Bạn phải nhập rollback_run_id (Run ID của lần deploy ổn định trước đó) khi chạy chế độ rollback!"
+            exit 1
+          fi
+
+      - name: Download Previous Stable Artifact for Rollback
+        if: inputs.action_mode == 'rollback'
+        uses: actions/download-artifact@v4
+        with:
+          name: saas-release-bundle
+          run-id: ${{ inputs.rollback_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: release-bundle/
+
+      - name: Upload Selected Bundle for Deployment Stage
+        if: inputs.action_mode == 'rollback'
+        uses: actions/upload-artifact@v4
+        with:
+          name: saas-release-bundle
+          path: release-bundle/
+          retention-days: 5
+
+  deploy-to-azure:
+    name: "Deploy / Rollback on Azure App Service"
+    needs: build-or-fetch-artifact
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download Selected Release Bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: saas-release-bundle
+          path: release-bundle/
+
+      - name: Display Release Metadata
+        run: |
+          echo "=== Executing ${{ inputs.action_mode }} for ${{ inputs.target_component }} ==="
+          cat release-bundle/release-info.txt
+
+      - name: Azure Login via OIDC Federated Credentials (Zero Static Secret)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy / Rollback API App Service
+        if: inputs.target_component == 'both' || inputs.target_component == 'api'
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_API_APP_NAME }}
+          package: release-bundle/app.jar
+
+      - name: Deploy / Rollback Worker App Service
+        if: inputs.target_component == 'both' || inputs.target_component == 'worker'
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WORKER_APP_NAME }}
+          package: release-bundle/app.jar
+
+      - name: Verify API HTTPS Health Endpoint Post-Deployment
+        if: inputs.target_component == 'both' || inputs.target_component == 'api'
+        run: |
+          API_URL="https://${{ vars.AZURE_API_APP_NAME }}.azurewebsites.net/actuator/health"
+          echo "Checking health at ${API_URL} ..."
+          for i in $(seq 1 12); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${API_URL}" || true)
+            echo "Attempt ${i}: HTTP ${STATUS}"
+            if [ "${STATUS}" = "200" ]; then
+              echo "Health check passed (HTTP 200)!"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::API Health check did not return 200 within 120 seconds."
+          exit 1
