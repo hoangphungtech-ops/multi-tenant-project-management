@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: tv3-export-worker
+  profiles:
+    default: worker
+  main:
+    web-application-type: none
+
+management:
+  endpoints:
+    enabled-by-default: false
+  endpoint:
+    health:
+      enabled: true
+      show-details: never

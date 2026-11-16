@@ -1,23 +1,49 @@
-# Contract to confirm with the group BEFORE Azure SDK/JDBC integration
+# Contract to confirm with the group BEFORE production Worker integration
 
-> This is a proposed integration contract, **not** a finalized team agreement. TV2 should lock schema & endpoints first (end of week 2 according to group document).
+> This is a proposed integration contract, **not** a finalized team agreement. TV2 must confirm it before implementing `ExportMessageProcessor` or connecting exports to its database.
 
-## TV2 ↔ TV3: authoritative job record & tenant isolation
+## TV2 ↔ TV3: Azure Queue payload proposal
 
-Proposed queue message (JSON, untrusted contents):
+Queue names already declared by TV1's Terraform:
+- Main: `export-jobs`
+- Poison: `export-jobs-poison`
+
+Proposed version 1 queue message (all fields are untrusted):
 ```json
-{"jobId":"00000000-0000-0000-0000-00000000002a","claimedTenantId":"00000000-0000-0000-0000-00000000000a","requestId":"req-123"}
+{
+  "schemaVersion": 1,
+  "jobId": "00000000-0000-0000-0000-00000000002a",
+  "claimedTenantId": "00000000-0000-0000-0000-00000000000a",
+  "requestId": "req-123"
+}
 ```
 
-The worker should:
-1. Read job by jobId from authoritative `export_jobs` table.
-2. Compare `claimedTenantId` with stored `tenant_id`. On mismatch: increment mismatch counter and reject without querying tasks, without mutating legitimate job.
-3. Re-check `memberships` at execution time (requested_by_user_id, tenant_id, active status).
-4. Atomically claim job; handle timed-out leases before retry. Queue delivery may be at least once.
-5. Query tasks only with verified DB tenant ID; enforce RLS per PostgreSQL transaction and reset tenant context on pooled connections.
-6. Upload `exports/{tenant_id}/{job_id}.csv` into private Blob container (never public).
-7. Mark complete with blob path; do not emit SAS tokens into logs.
-8. ACK/Delete queue message **only** after a successful/terminal decision; retry transients. After max dequeue count move to explicit `exports-poison` queue.
+Required by the current parser: `schemaVersion` (integer, currently `1`) and `jobId` (UUID). Optional: `claimedTenantId` (UUID) and `requestId` (non-empty, at most 128 characters). Unknown properties and unsupported versions are rejected. **TV2 must confirm field names, whether claimed tenant is included, requestId propagation, and producer compatibility.**
+
+`claimedTenantId` is never an authority for selecting tenant data. The queue adapter has no database access and does not perform export work. TV2 must provide the authoritative job lookup/membership/claim implementation behind `ExportMessageProcessor`.
+
+## TV2 ↔ TV3: durable processing contract (BLOCKED)
+
+Before returning a durable outcome, the processor must:
+1. Load `export_jobs` using `jobId`; derive tenant/user from the authoritative row.
+2. Compare the optional claim only as a consistency/security check. On mismatch, do not query tenant tasks or mutate the legitimate job; persist the agreed terminal security result before returning `DURABLY_REJECTED`.
+3. Re-check current membership and authorization at execution time.
+4. Atomically claim the job and define stale-lease recovery.
+5. Query only the verified tenant and define transaction-scoped RLS/connection-pool reset behavior.
+6. Return `DURABLY_COMPLETED` or `DURABLY_REJECTED` only after the database transaction has committed. Otherwise return `RETRYABLE_FAILURE` or throw.
+
+The current branch has only the `ExportMessageProcessor` interface. No production implementation is present; therefore no export is performed and the Worker profile fails startup without that bean.
+
+## Queue acknowledgement and retry behavior implemented in the adapter
+
+1. Receive one message using the configured visibility timeout and retain its messageId/popReceipt.
+2. Parse/validate the versioned payload. Invalid messages are copied to the poison queue as sanitized metadata (source message ID, error code, dequeue count, timestamp); the source is deleted only after poison enqueue succeeds.
+3. For a valid message, renew visibility while the processor runs. Keep the latest popReceipt returned by each renewal.
+4. Delete the message only after a durable processor outcome, using the current messageId and latest popReceipt.
+5. On retryable outcome/processor exception, update visibility with exponential backoff and jitter; do not delete before the configured dequeue limit.
+6. At the limit, enqueue a sanitized poison record first and delete the source only after that send succeeds. If poison send, visibility update, or source delete fails, surface the error; queue redelivery remains possible. A send-success/delete-failure can duplicate a poison record and requires Phase 5 operational handling.
+
+TV2/TV3 must confirm max dequeue count, retry timing, permanent error categories, and whether a durable rejected job should be deleted directly or routed to poison.
 
 Confirm SQL names, `export_jobs` status transitions, `requested_by`, membership deletion semantics, lease timeout/locks, CSV columns, `request_id`, error codes, number of retries and event logging. Do not infer these from the high-level document.
 
