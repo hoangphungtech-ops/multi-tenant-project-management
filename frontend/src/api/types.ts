@@ -1,6 +1,7 @@
 export type Role = "OWNER" | "MEMBER" | "GUEST";
 export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
-export type ExportStatus = "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED" | "REJECTED";
+// TV3 prototype dùng PENDING; contract đề xuất QUEUED — chấp nhận cả hai tới khi TV2/TV3 chốt.
+export type ExportStatus = "PENDING" | "QUEUED" | "PROCESSING" | "COMPLETED" | "FAILED" | "REJECTED";
 
 export interface Membership { tenantId: string; tenantName: string; role: Role }
 export interface Me { userId: string; email: string; displayName: string; memberships: Membership[] }

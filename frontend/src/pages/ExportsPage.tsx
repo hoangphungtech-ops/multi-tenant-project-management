@@ -5,7 +5,8 @@ import { ErrorNotice, GuestHint, fmtDate } from "../components/Notice";
 import { useLoad } from "../components/useLoad";
 import { useOrg } from "../org/OrgProvider";
 
-const ACTIVE = new Set(["QUEUED", "PROCESSING"]);
+// Trạng thái kết thúc; mọi trạng thái khác (PENDING/QUEUED/PROCESSING/…) coi là đang chạy và tiếp tục poll.
+const TERMINAL = new Set(["COMPLETED", "FAILED", "REJECTED"]);
 
 export function ExportsPage() {
   const { api, current, canWrite } = useOrg();
@@ -16,7 +17,7 @@ export function ExportsPage() {
   const [actionErr, setActionErr] = useState<string>();
 
   // Poll khi còn job đang chạy (Worker xử lý bất đồng bộ qua Azure Queue)
-  const hasActive = jobs.data?.some((j) => ACTIVE.has(j.status));
+  const hasActive = jobs.data?.some((j) => !TERMINAL.has(j.status));
   useEffect(() => {
     if (!hasActive) return;
     const timer = setInterval(() => {
