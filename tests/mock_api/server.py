@@ -9,6 +9,7 @@ Chạy:
     python tests/mock_api/server.py --vuln stale-membership
     python tests/mock_api/server.py --vuln global-unique
     python tests/mock_api/server.py --vuln shared-cache
+    python tests/mock_api/server.py --vuln demo-header   # header X-Demo-User thay cho JWT
 
 Token giả lập: "Bearer mock-<userKey>", ví dụ mock-a-owner, mock-b-member1, mock-a-guest.
 """
@@ -200,6 +201,14 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------- security helpers ----------
     def _user(self) -> dict:
+        demo_user = self.headers.get("X-Demo-User")
+        if "demo-header" in VULNS and demo_user and self.headers.get("X-Demo-Tenant"):
+            # LỖ HỔNG cố ý: giống backend để APP_SECURITY_DEMO_MODE=true — header thay cho JWT.
+            for u in STORE.users.values():
+                if demo_user in (u["key"], u["email"], u["userId"]):
+                    return u
+            return {"userId": uid(f"user:demo:{demo_user}"), "email": demo_user,
+                    "displayName": demo_user, "key": demo_user}
         auth = self.headers.get("Authorization", "")
         if not auth.startswith("Bearer "):
             raise ApiError(401, "UNAUTHORIZED", "Thiếu Bearer token")
@@ -526,7 +535,7 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8080)
     parser.add_argument("--vuln", action="append", default=[],
-                        choices=["idor", "stale-membership", "global-unique", "shared-cache"],
+                        choices=["idor", "stale-membership", "global-unique", "shared-cache", "demo-header"],
                         help="Cố tình bật lỗ hổng để chứng minh bộ test phát hiện được")
     args = parser.parse_args()
     VULNS.update(args.vuln)

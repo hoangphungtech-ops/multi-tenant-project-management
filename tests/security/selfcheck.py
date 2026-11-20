@@ -25,6 +25,7 @@ SCENARIOS = [
     ("stale-membership", "test_2_membership_revocation.py"),
     ("global-unique", "test_3_duplicate_name_cache.py"),
     ("shared-cache", "test_3_duplicate_name_cache.py"),
+    ("demo-header", "test_1_cross_tenant_idor.py"),
 ]
 
 

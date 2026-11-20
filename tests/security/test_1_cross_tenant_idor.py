@@ -101,6 +101,44 @@ def test_forged_token_is_rejected(settings, org_b):
     assert resp.status_code == 401
 
 
+# --- Bypass xác thực bằng header "demo" -------------------------------------------------------
+# Backend có chế độ demo (APP_SECURITY_DEMO_MODE, mặc định true) nhận danh tính từ header
+# X-Demo-User / X-Demo-Tenant thay cho JWT. Nếu còn bật trên môi trường được kiểm thử thì ai cũng
+# giả danh được người khác mà không cần token. Chỉ được bỏ qua khi CỐ Ý chạy với backend local ở
+# demo mode: đặt ALLOW_DEMO_AUTH=1.
+skip_if_demo_allowed = pytest.mark.skipif(
+    __import__("os").environ.get("ALLOW_DEMO_AUTH") == "1",
+    reason="ALLOW_DEMO_AUTH=1: đang cố ý chạy với backend local ở demo mode")
+
+
+@pytest.fixture(scope="module")
+def victim_identities(b_owner):
+    """Các giá trị X-Demo-User mà kẻ tấn công có thể thử để giả danh Owner Org B."""
+    me = b_owner.get(P.me(), label="setup: B-owner identity").json()
+    return ["demo-owner", "b-owner", me["userId"], me["email"]]
+
+
+@skip_if_demo_allowed
+def test_demo_headers_do_not_authenticate(anonymous, org_b, org_b_resources, victim_identities):
+    """Không có JWT, chỉ có X-Demo-User/X-Demo-Tenant -> phải 401 (403 nghĩa là header ĐÃ được nhận làm danh tính)."""
+    for who in victim_identities:
+        resp = anonymous.get(P.projects(org_b), label=f"ATTACK demo headers as '{who}' (no JWT)",
+                             headers={"X-Demo-User": who, "X-Demo-Tenant": org_b})
+        assert resp.status_code == 401, (
+            f"LỖ HỔNG: header X-Demo-User='{who}' được chấp nhận làm danh tính "
+            f"({resp.status_code}, kỳ vọng 401) — demo mode đang bật trên môi trường này")
+        assert org_b_resources["project"]["name"] not in resp.text
+
+
+@skip_if_demo_allowed
+def test_demo_headers_cannot_override_jwt_identity(a_owner, org_b, org_b_resources, victim_identities):
+    """JWT hợp lệ của Org A + header giả danh Owner Org B -> danh tính vẫn là A -> 403 khi đọc Org B."""
+    for who in victim_identities:
+        resp = a_owner.get(P.projects(org_b), label=f"ATTACK A's JWT + X-Demo-User='{who}'",
+                           headers={"X-Demo-User": who, "X-Demo-Tenant": org_b})
+        assert_denied(resp, leak_markers(org_b_resources))
+
+
 def test_guest_write_is_blocked_by_api(a_guest, org_a, a_owner):
     """Read-only Guest: mọi request ghi phải bị API chặn 403 (không chỉ ẩn nút trên UI)."""
     projects = a_owner.get(P.projects(org_a), label="setup: A projects").json()
