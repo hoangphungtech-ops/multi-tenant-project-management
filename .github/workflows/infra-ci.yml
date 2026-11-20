@@ -1,0 +1,58 @@
+name: "CI — Terraform IaC & Security Self-Test"
+
+on:
+  push:
+    branches:
+      - main
+      - "feat/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform-validate:
+    name: "Validate Azure Terraform (infra/)"
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.x"
+
+      - name: Check Terraform formatting (terraform fmt)
+        run: terraform fmt -check -recursive
+
+      - name: Initialize Terraform (backend=false, $0 cost)
+        run: terraform init -backend=false
+
+      - name: Validate Terraform configuration
+        run: terraform validate
+
+  worker-prototype-test:
+    name: "Verify TV3 Export Worker Security Prototype (JDK 21)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 21 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      - name: Run TV3 security & reliability self-tests
+        working-directory: prototypes/tv3-worker
+        run: bash scripts/run-tests.sh

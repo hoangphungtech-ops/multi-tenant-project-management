@@ -10,7 +10,8 @@ Thư mục này quản lý toàn bộ hạ tầng Microsoft Azure cho hệ thố
 * `storage_queue.tf`: Azure Storage Account (Private Blob `exports`, `export-jobs` Queue & Poison Queue).
 * `keyvault.tf`: Azure Key Vault (RBAC) lưu mật khẩu DB.
 * `app_service.tf`: App Service Plan (`B1`), 2 Web Apps (`api` & `worker`) dùng Java 21, HTTPS Only, VNet Integration và Managed Identity RBAC.
-* `monitoring.tf`: Log Analytics Workspace, Application Insights, Action Group (Email Alert) & Alert Rule.
+* `frontend.tf`: Azure Static Web Apps (Gói `Free` $0/tháng, HTTPS miễn phí cho React SPA).
+* `monitoring.tf`: Log Analytics Workspace, Application Insights, Action Group (Email Alert) & 2 Metric Alert Rules (`Http5xx` và `worker_tenant_mismatch_total`).
 * `outputs.tf`: Xuất các URL/Endpoint bàn giao cho Thành viên 2, 3, 4.
 
 ## Hướng dẫn chạy kiểm tra (Chưa tốn tiền)
