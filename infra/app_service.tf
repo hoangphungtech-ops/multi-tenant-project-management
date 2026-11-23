@@ -28,21 +28,33 @@ resource "azurerm_linux_web_app" "api" {
       java_server_version = "21"
       java_version        = "21"
     }
+    cors {
+      allowed_origins     = ["https://${azurerm_static_web_app.frontend.default_host_name}", "http://localhost:5173"]
+      support_credentials = false
+    }
   }
 
   app_settings = {
     "SPRING_PROFILES_ACTIVE"                = "api,azure"
+    "APP_SECURITY_DEMO_MODE"                = "false"
+    "CORS_ALLOWED_ORIGINS"                  = "https://${azurerm_static_web_app.frontend.default_host_name},http://localhost:5173"
     "SPRING_DATASOURCE_URL"                 = "jdbc:postgresql://${azurerm_postgresql_flexible_server.main.fqdn}:5432/saas_db?sslmode=require"
     "SPRING_DATASOURCE_USERNAME"            = var.db_admin_username
     "SPRING_DATASOURCE_PASSWORD"            = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.db_password.versionless_id})"
+    "DB_URL"                                = "jdbc:postgresql://${azurerm_postgresql_flexible_server.main.fqdn}:5432/saas_db?sslmode=require"
+    "DB_USERNAME"                           = var.db_admin_username
+    "DB_PASSWORD"                           = "@Microsoft.KeyVault(SecretUri=${azurerm_key_vault_secret.db_password.versionless_id})"
     "AZURE_STORAGE_ACCOUNT_NAME"            = azurerm_storage_account.main.name
     "AZURE_STORAGE_BLOB_ENDPOINT"           = azurerm_storage_account.main.primary_blob_endpoint
     "AZURE_STORAGE_QUEUE_ENDPOINT"          = azurerm_storage_account.main.primary_queue_endpoint
     "AZURE_STORAGE_CONTAINER_EXPORTS"       = azurerm_storage_container.exports.name
     "AZURE_STORAGE_QUEUE_EXPORTS"           = azurerm_storage_queue.export_jobs.name
     "AZURE_STORAGE_QUEUE_POISON"            = azurerm_storage_queue.export_jobs_poison.name
+    "AZURE_BLOB_CONTAINER"                  = azurerm_storage_container.exports.name
+    "AZURE_QUEUE_NAME"                      = azurerm_storage_queue.export_jobs.name
     "APPLICATIONINSIGHTS_CONNECTION_STRING" = azurerm_application_insights.main.connection_string
     "OIDC_ISSUER_URI"                       = var.oidc_issuer_uri
+    "ENTRA_ISSUER_URI"                      = var.oidc_issuer_uri
   }
 
   tags = local.tags

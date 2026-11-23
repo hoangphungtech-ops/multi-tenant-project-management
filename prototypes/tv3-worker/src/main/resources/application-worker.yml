@@ -1,0 +1,13 @@
+tv3:
+  worker:
+    empty-poll-interval: 1s
+    initial-error-backoff: 1s
+    max-error-backoff: 30s
+    shutdown-timeout: 10s
+  queue:
+    queue-name: export-jobs
+    poison-queue-name: export-jobs-poison
+    visibility-timeout: 30s
+    max-dequeue-count: 5
+    initial-retry-delay: 5s
+    max-retry-delay: 5m

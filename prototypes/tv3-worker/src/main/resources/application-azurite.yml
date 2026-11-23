@@ -1,0 +1,3 @@
+tv3:
+  queue:
+    connection-string: ${AZURE_STORAGE_CONNECTION_STRING:}

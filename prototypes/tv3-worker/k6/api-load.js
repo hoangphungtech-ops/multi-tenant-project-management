@@ -1,35 +1,49 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 
-// To integrate with TV2 after API path and auth have been finalized:
-// PowerShell:
-// $env:BASE_URL='http://localhost:8080'; $env:API_PATH='/api/v1/projects';
-// $env:ACCESS_TOKEN='<SHORT-LIVED TEST JWT>'; k6 run k6/api-load.js
-// Only run on a test system with permission. Never commit a real token.
-export const options = {
-  stages: [
-    { duration: '15s', target: 5 },  // warmup
-    { duration: '2m', target: 5 },   // measurement
-    { duration: '15s', target: 0 }, // cooldown
-  ],
-  thresholds: {
-    http_req_failed: ['rate<0.01'],
-    http_req_duration: ['p(95)<800'], // suggested goal, NOT a verified course requirement
-    checks: ['rate>0.99'],
-  },
-};
-
 const baseUrl = __ENV.BASE_URL;
 const path = __ENV.API_PATH;
 const token = __ENV.ACCESS_TOKEN;
-if (!baseUrl || !path || !token) throw new Error('Set BASE_URL, API_PATH and ACCESS_TOKEN');
+const demo = __ENV.LOCAL_DEMO === 'true';
+
+if (!baseUrl || !path || !path.startsWith('/') || path.startsWith('//') || path.includes('?')) {
+  throw new Error('Set BASE_URL and API_PATH (path without query string)');
+}
+if (demo && (!/^http:\/\/127\.0\.0\.1:\d+$/.test(baseUrl) || !__ENV.DEMO_USER || !__ENV.DEMO_TENANT)) {
+  throw new Error('LOCAL_DEMO requires a loopback HTTP URL, DEMO_USER and DEMO_TENANT');
+}
+if (!demo && (!/^https:\/\/[^/?#@]+$/.test(baseUrl) || !token)) {
+  throw new Error('Set an HTTPS BASE_URL and short-lived ACCESS_TOKEN');
+}
+
+const headers = demo
+  ? { 'X-Demo-User': __ENV.DEMO_USER, 'X-Demo-Tenant': __ENV.DEMO_TENANT }
+  : { Authorization: `Bearer ${token}` };
+
+export const options = {
+  scenarios: {
+    workspace_read: {
+      executor: 'constant-vus',
+      vus: Number(__ENV.VUS || 5),
+      duration: __ENV.DURATION || '2m',
+    },
+  },
+  thresholds: {
+    http_req_failed: ['rate<0.01'],
+    http_req_duration: ['p(95)<800'],
+    checks: ['rate>0.99'],
+  },
+  systemTags: ['status', 'method', 'name', 'scenario', 'expected_response'],
+};
 
 export default function () {
   const response = http.get(`${baseUrl}${path}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    tags: { test_case: 'read_projects' },
+    headers,
+    redirects: 0,
+    responseCallback: http.expectedStatuses(200),
+    tags: { name: 'list_workspaces' },
     timeout: '15s',
   });
-  check(response, { 'HTTP 200': r => r.status === 200 });
+  check(response, { 'HTTP 200': (r) => r.status === 200 });
   sleep(1);
 }

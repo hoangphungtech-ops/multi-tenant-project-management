@@ -26,9 +26,9 @@ on:
         default: ""
         type: string
       maven_project_dir:
-        description: "Thư mục chứa pom.xml (mặc định backend khi TV2 merge, hoặc prototypes/tv3-worker)"
+        description: "Thư mục chứa pom.xml (mặc định backend-core-api cho API hoặc prototypes/tv3-worker cho Worker)"
         required: true
-        default: "backend"
+        default: "backend-core-api"
         type: string
 
 permissions:

@@ -1,4 +1,4 @@
-name: "CI — Terraform IaC & Security Self-Test"
+name: "CI — Full Stack Verification (TV1 Infra, TV2 API, TV3 Worker, TV4 UI & Security QA)"
 
 on:
   push:
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   terraform-validate:
-    name: "Validate Azure Terraform (infra/)"
+    name: "TV1 — Validate Azure Terraform (infra/)"
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -39,8 +39,8 @@ jobs:
       - name: Validate Terraform configuration
         run: terraform validate
 
-  worker-prototype-test:
-    name: "Verify TV3 Export Worker Security Prototype (JDK 21)"
+  backend-and-worker-test:
+    name: "TV2 & TV3 — Build & Test Spring Boot API and Export Worker (JDK 21)"
     runs-on: ubuntu-latest
 
     steps:
@@ -52,7 +52,48 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "21"
+          cache: "maven"
 
-      - name: Run TV3 security & reliability self-tests
+      - name: TV2 — Compile & Test Backend Core API
+        working-directory: backend-core-api
+        run: mvn -B -ntp test
+
+      - name: TV3 — Run Standalone Export Worker Security Prototype (5/5 cases)
         working-directory: prototypes/tv3-worker
         run: bash scripts/run-tests.sh
+
+      - name: TV3 — Build & Unit Test Spring Boot Export Worker (16+ cases)
+        working-directory: prototypes/tv3-worker
+        run: mvn -B -ntp test
+
+  frontend-and-security-qa:
+    name: "TV4 — Build React Frontend & Run Automated Security QA Selfcheck (6/6)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: TV4 — Frontend Type-Check & Vite Production Build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: TV4 — Run Automated API Security Selfcheck (6 Scenarios) & Secret Scanner
+        run: |
+          pip install -r tests/security/requirements.txt
+          python tests/security/selfcheck.py
+          python tests/security/scan_secrets.py frontend tests docs infra
