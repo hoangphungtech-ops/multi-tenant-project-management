@@ -135,7 +135,12 @@ class ApiClient:
         self.base_url = base_url.rstrip("/")
         self.name = name
         self.session = requests.Session()
-        if token:
+        if token and token.startswith("demo:"):
+            # Chỉ cho backend TV2 chạy local ở chế độ demo: danh tính qua header thay cho JWT.
+            _, user, tenant = token.split(":", 2)
+            self.session.headers["X-Demo-User"] = user
+            self.session.headers["X-Demo-Tenant"] = tenant
+        elif token:
             self.session.headers["Authorization"] = f"Bearer {token}"
         self.session.headers["Accept"] = "application/json"
         self._recorder = recorder_getter
@@ -160,6 +165,7 @@ class ApiClient:
     def get(self, path, **kw): return self.request("GET", path, **kw)
     def post(self, path, **kw): return self.request("POST", path, **kw)
     def patch(self, path, **kw): return self.request("PATCH", path, **kw)
+    def put(self, path, **kw): return self.request("PUT", path, **kw)
     def delete(self, path, **kw): return self.request("DELETE", path, **kw)
 
 

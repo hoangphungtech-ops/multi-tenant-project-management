@@ -37,7 +37,20 @@ Kết quả selfcheck hiện tại:
 > Mock API **không phải** backend thật. PASS trên mock chỉ chứng minh logic test đúng.
 > Bằng chứng nộp báo cáo phải chạy trên API thật trên Azure (Đợt 2, Tuần 6).
 
-### 2. Với API thật (Docker local của TV2 hoặc Azure)
+### 2. Với backend thật của TV2 chạy trên máy (`API_TARGET=tv2-local`)
+
+Chỉ cần Docker Desktop (không cần Java/Maven). Script dựng PostgreSQL + API TV2 trong container riêng `tv4-qa-*`:
+```powershell
+python tests/backend_local/tv2_backend.py start     # build + chạy API tại http://127.0.0.1:18080
+cd tests/security
+$env:API_TARGET = "tv2-local"; python -m pytest backend_tv2
+cd ../..; python tests/backend_local/tv2_backend.py stop
+```
+Bộ `backend_tv2/` kiểm tra Test 1–3 trên các endpoint backend đang có (`workspaces`, `exports`).
+Danh tính lấy từ seed qua header demo (chỉ hợp lệ trên máy local). Test 2 thu hồi membership trực tiếp
+trong DB (`status = INACTIVE`), vì backend chưa có API xóa thành viên.
+
+### 3. Với API thật trên Azure
 
 Cần 4 JWT thật (từ seed data, user thật trong Entra External ID):
 
