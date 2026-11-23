@@ -7,7 +7,10 @@ Nguồn cấu hình (ưu tiên từ trên xuống):
 
 Biến:
   API_BASE_URL     https://app-...-api-xxxx.azurewebsites.net   (mặc định http://127.0.0.1:8080)
-  API_TARGET       mock | local | azure   (chỉ để gắn nhãn bằng chứng; mock => dùng token giả lập)
+  API_TARGET       mock | tv2-local | local | azure
+                   mock      => mock API + token giả lập; chạy bộ test theo contract đề xuất
+                   tv2-local => backend thật của TV2 trên máy (tests/backend_local/tv2_backend.py),
+                                danh tính lấy từ seed qua header demo; chỉ chạy tests/security/backend_tv2/
   TOKEN_A_OWNER    JWT của Owner Org A
   TOKEN_A_GUEST    JWT của Guest Org A
   TOKEN_X          JWT của User X (MEMBER Org A, sẽ bị thu hồi ở Test 2)
@@ -35,6 +38,34 @@ MOCK_TOKENS = {
     "TOKEN_X": "mock-a-member3",
     "TOKEN_B_OWNER": "mock-b-owner",
 }
+# Backend TV2 local: "demo:<entra_object_id>:<tenant>" -> header X-Demo-User / X-Demo-Tenant (xem evidence.ApiClient)
+TV2_ORG_A = "11111111-1111-1111-1111-111111111111"
+TV2_ORG_B = "11111111-1111-1111-1111-222222222222"
+TV2_LOCAL_DEFAULTS = {
+    "API_BASE_URL": "http://127.0.0.1:18080",
+    "ORG_A_ID": TV2_ORG_A,
+    "ORG_B_ID": TV2_ORG_B,
+    "TOKEN_A_OWNER": f"demo:demo-owner:{TV2_ORG_A}",
+    "TOKEN_A_GUEST": f"demo:orga-guest:{TV2_ORG_A}",
+    "TOKEN_X": f"demo:orga-user-x:{TV2_ORG_A}",
+    "TOKEN_B_OWNER": f"demo:orgb-owner:{TV2_ORG_B}",
+}
+TV2_DIR = "backend_tv2"
+
+
+def target() -> str:
+    return os.environ.get("API_TARGET", "mock")
+
+
+def pytest_collection_modifyitems(config, items):
+    """Mỗi target chỉ chạy bộ test phù hợp: tv2-local -> backend_tv2/, còn lại -> bộ test theo contract."""
+    tv2 = target() == "tv2-local"
+    for item in items:
+        in_tv2 = TV2_DIR in Path(str(item.fspath)).parts
+        if tv2 and not in_tv2:
+            item.add_marker(pytest.mark.skip(reason="API_TARGET=tv2-local: bộ test contract cần các endpoint backend TV2 chưa có"))
+        elif not tv2 and in_tv2:
+            item.add_marker(pytest.mark.skip(reason="Chỉ chạy với API_TARGET=tv2-local (backend thật của TV2)"))
 
 _current_recorder: EvidenceRecorder | None = None
 _results: list[dict] = []
@@ -49,8 +80,10 @@ def _setting(name: str, default: str | None = None) -> str | None:
         value = json.loads(local.read_text(encoding="utf-8")).get(name)
         if value:
             return value
-    if os.environ.get("API_TARGET", "mock") == "mock" and name in MOCK_TOKENS:
+    if target() == "mock" and name in MOCK_TOKENS:
         return MOCK_TOKENS[name]
+    if target() == "tv2-local" and name in TV2_LOCAL_DEFAULTS:
+        return TV2_LOCAL_DEFAULTS[name]
     return default
 
 
@@ -77,7 +110,7 @@ def run_dir(settings) -> Path:
     (d / "run-info.json").write_text(json.dumps({
         "startedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "target": settings["target"], "baseUrl": settings["base_url"],
-        "python": platform.python_version(), "host": platform.node(),
+        "python": platform.python_version(),  # không ghi tên máy: bằng chứng có thể được commit
     }, indent=2), encoding="utf-8")
     return d
 
@@ -117,10 +150,10 @@ def anonymous(settings): return ApiClient(settings["base_url"], None, "anonymous
 
 
 def _owned_org(client: ApiClient, override: str | None) -> str:
+    if override:  # đã biết ID tổ chức (vd. seed TV2) -> không cần /me
+        return override
     r = client.get(P.me(), label=f"{client.name}: discover tenant via /me")
     assert r.status_code == 200, f"/me của {client.name} trả {r.status_code}: token sai hoặc API chưa chạy"
-    if override:
-        return override
     owned = [m["tenantId"] for m in r.json()["memberships"] if m["role"] == "OWNER"]
     assert len(owned) == 1, f"{client.name} là OWNER của {len(owned)} org — hãy đặt ORG_A_ID/ORG_B_ID"
     return owned[0]

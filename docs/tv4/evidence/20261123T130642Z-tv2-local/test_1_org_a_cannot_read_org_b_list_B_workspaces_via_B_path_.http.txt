@@ -1,0 +1,35 @@
+### NOTE 2026-11-23T13:06:43.534+00:00  TEST START  {"nodeid": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_read_org_b[list B workspaces via B path]"}
+
+### [1] ATTACK list B workspaces via B path
+# sent 2026-11-23T13:06:43.535+00:00  received 2026-11-23T13:06:43.561+00:00  (26.1 ms)
+GET http://127.0.0.1:18080/api/v1/tenants/11111111-1111-1111-1111-222222222222/workspaces
+User-Agent: python-requests/2.34.2
+Accept-Encoding: gzip, deflate
+Accept: application/json
+Connection: keep-alive
+X-Demo-User: demo-owner
+X-Demo-Tenant: 11111111-1111-1111-1111-111111111111
+X-Request-Id: tv4-A-owner-1795439203535-1
+
+--> HTTP 403 
+X-Request-Id: tv4-A-owner-1795439203535-1
+Vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Mon, 23 Nov 2026 13:06:43 GMT
+Keep-Alive: timeout=60
+Connection: keep-alive
+
+{
+  "message": "No active tenant membership",
+  "error": "FORBIDDEN"
+}
+
+### NOTE 2026-11-23T13:06:43.562+00:00  TEST END  {}
+
