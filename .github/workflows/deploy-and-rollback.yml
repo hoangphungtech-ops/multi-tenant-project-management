@@ -12,14 +12,16 @@ on:
           - deploy
           - rollback
       target_component:
-        description: "Thành phần cần deploy/rollback"
+        description: "Thành phần cần deploy/rollback (all = Backend + Worker + Frontend SWA)"
         required: true
-        default: "both"
+        default: "all"
         type: choice
         options:
+          - all
           - both
           - api
           - worker
+          - frontend
       rollback_run_id:
         description: "[Chỉ dùng khi chọn rollback] Nhập GitHub Actions Run ID của bản build ổn định trước đó"
         required: false
@@ -121,21 +123,21 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Deploy / Rollback API App Service
-        if: inputs.target_component == 'both' || inputs.target_component == 'api'
+        if: inputs.target_component == 'all' || inputs.target_component == 'both' || inputs.target_component == 'api'
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ vars.AZURE_API_APP_NAME }}
           package: release-bundle/app.jar
 
       - name: Deploy / Rollback Worker App Service
-        if: inputs.target_component == 'both' || inputs.target_component == 'worker'
+        if: inputs.target_component == 'all' || inputs.target_component == 'both' || inputs.target_component == 'worker'
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ vars.AZURE_WORKER_APP_NAME }}
           package: release-bundle/app.jar
 
       - name: Verify API HTTPS Health Endpoint Post-Deployment
-        if: inputs.target_component == 'both' || inputs.target_component == 'api'
+        if: inputs.target_component == 'all' || inputs.target_component == 'both' || inputs.target_component == 'api'
         run: |
           API_URL="https://${{ vars.AZURE_API_APP_NAME }}.azurewebsites.net/actuator/health"
           echo "Checking health at ${API_URL} ..."
@@ -150,3 +152,44 @@ jobs:
           done
           echo "::error::API Health check did not return 200 within 120 seconds."
           exit 1
+
+  deploy-frontend-swa:
+    name: "Deploy React Frontend to Azure Static Web Apps"
+    if: inputs.target_component == 'all' || inputs.target_component == 'frontend'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build Frontend SPA with Vite Environment Variables
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || format('https://{0}.azurewebsites.net', vars.AZURE_API_APP_NAME) }}
+          VITE_ENTRA_CLIENT_ID: ${{ vars.VITE_ENTRA_CLIENT_ID }}
+          VITE_ENTRA_AUTHORITY: ${{ vars.VITE_ENTRA_AUTHORITY }}
+          VITE_API_SCOPE: ${{ vars.VITE_API_SCOPE }}
+          VITE_AUTH_MODE: ${{ vars.VITE_AUTH_MODE || 'msal' }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: Azure Login via OIDC Federated Credentials
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy dist/ to Azure Static Web App (Dynamic Token via OIDC)
+        working-directory: frontend
+        run: |
+          SWA_TOKEN=$(az staticwebapp secrets list --name "${{ vars.AZURE_SWA_NAME }}" --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --query "properties.apiKey" -o tsv)
+          npx --yes @azure/static-web-apps-cli deploy ./dist --deployment-token "${SWA_TOKEN}" --env production
