@@ -1,0 +1,8 @@
+spring:
+  config:
+    activate:
+      on-profile: api
+logging:
+  level:
+    com.project.backendapi: INFO
+    org.springframework.security: INFO

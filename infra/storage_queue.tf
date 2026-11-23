@@ -10,6 +10,8 @@ resource "azurerm_storage_account" "main" {
   account_replication_type        = "LRS"
   min_tls_version                 = "TLS1_2"
   allow_nested_items_to_be_public = false
+  # Hardened baseline: anonymous blob access is disabled (allow_nested_items_to_be_public = false).
+  # When VNet Private Endpoints are enabled in production: public_network_access_enabled = false
 
   tags = local.tags
 }
