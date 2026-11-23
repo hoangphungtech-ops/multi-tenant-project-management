@@ -13,9 +13,12 @@ resource "azurerm_postgresql_flexible_server" "main" {
   sku_name              = "B_Standard_B1ms"
   storage_mb            = 32768
   backup_retention_days = 7
-  zone                  = "1"
 
   tags = local.tags
+
+  lifecycle {
+    ignore_changes = [zone]
+  }
 
   depends_on = [
     azurerm_private_dns_zone_virtual_network_link.postgres

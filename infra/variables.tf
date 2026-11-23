@@ -16,9 +16,9 @@ variable "environment" {
 }
 
 variable "location" {
-  description = "Azure Region (đã kiểm tra hỗ trợ B1ms cho Azure for Students)"
+  description = "Azure Region nằm trong danh sách Allowed Locations của gói Azure for Students (eastasia, japaneast, malaysiawest...)"
   type        = string
-  default     = "southeastasia"
+  default     = "eastasia"
 }
 
 variable "db_admin_username" {
