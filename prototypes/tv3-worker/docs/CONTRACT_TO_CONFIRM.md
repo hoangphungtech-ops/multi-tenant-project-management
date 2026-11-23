@@ -1,41 +1,25 @@
-# Contract to confirm with the group BEFORE Azure SDK/JDBC integration
+﻿# Hợp đồng TV2 đã đối chiếu
 
-> This is a proposed integration contract, **not** a finalized team agreement. TV2 should lock schema & endpoints first (end of week 2 according to group document).
+Nguồn là `Backend_Core_API_Source_Code.zip` trên `origin/main` tại commit `99dec5c`. Đã kiểm tra Flyway V1/V2, `ExportQueueService`, `ExportController`, `ExportJob`, `TenantMembershipService` và API workspace.
 
-## TV2 ↔ TV3: authoritative job record & tenant isolation
+| Chủ đề | Hợp đồng hiện có |
+| --- | --- |
+| Queue | TV2 gửi JSON `{"jobId":"<uuid>","tenantId":"<uuid>"}`. Worker giữ hỗ trợ định dạng proposal v1 với `schemaVersion=1` và `claimedTenantId`. Cả hai dạng đều coi claim là dữ liệu không đáng tin. |
+| Job | `export_jobs(id, tenant_id, requested_by, status, queue_message_id, blob_name, error_message, created_at, completed_at)`. Trạng thái `PENDING/PROCESSING/COMPLETED/FAILED`. |
+| Membership | `tenant_memberships` có `tenant_id, user_id, role, status`. Export API yêu cầu `OWNER` hoặc `MEMBER`. Worker xác minh lại hai role này và trạng thái `ACTIVE`. |
+| Dữ liệu | Migrations có `workspaces` và RLS theo `app.tenant_id`, chưa có bảng `tasks`. CSV demo mang các cột `workspace_id,name,description`. |
+| API | `POST /api/v1/tenants/{tenantId}/exports` trả 202. GET theo job trả `id,status`. Endpoint tải file chưa xuất hiện trong controller. |
 
-Proposed queue message (JSON, untrusted contents):
-```json
-{"jobId":"00000000-0000-0000-0000-00000000002a","claimedTenantId":"00000000-0000-0000-0000-00000000000a","requestId":"req-123"}
-```
+## Luồng demo
 
-The worker should:
-1. Read job by jobId from authoritative `export_jobs` table.
-2. Compare `claimedTenantId` with stored `tenant_id`. On mismatch: increment mismatch counter and reject without querying tasks, without mutating legitimate job.
-3. Re-check `memberships` at execution time (requested_by_user_id, tenant_id, active status).
-4. Atomically claim job; handle timed-out leases before retry. Queue delivery may be at least once.
-5. Query tasks only with verified DB tenant ID; enforce RLS per PostgreSQL transaction and reset tenant context on pooled connections.
-6. Upload `exports/{tenant_id}/{job_id}.csv` into private Blob container (never public).
-7. Mark complete with blob path; do not emit SAS tokens into logs.
-8. ACK/Delete queue message **only** after a successful/terminal decision; retry transients. After max dequeue count move to explicit `exports-poison` queue.
+Worker dùng tài khoản chủ schema chỉ trong PostgreSQL local, tìm job bằng UUID rồi dùng kết quả làm nguồn tenant có thẩm quyền. Claim sai đi poison với mã `TENANT_MISMATCH` và để job nguyên trạng. Sau khi so khớp, Worker thiết lập context transaction-local, kiểm tra membership và dùng tenant lấy từ job trong điều kiện SQL workspace. Job thiếu requester hoặc membership hợp lệ chuyển sang FAILED. Job chưa thấy trong DB được retry vì producer và Worker có thể chạy đồng thời.
 
-Confirm SQL names, `export_jobs` status transitions, `requested_by`, membership deletion semantics, lease timeout/locks, CSV columns, `request_id`, error codes, number of retries and event logging. Do not infer these from the high-level document.
+Khoá hàng job tuần tự hóa các lần nhận trùng và tự nhả khi transaction/connection kết thúc. Khoá chia sẻ membership giữ quyền nhất quán trong lúc ghi file. CSV dùng cursor JDBC và file tạm, upload vào private container `exports` với đường dẫn ổn định `{tenantId}/{jobId}.csv`. Worker chỉ commit COMPLETED sau upload thành công. Nếu mất kết nối sau upload nhưng trước commit, lượt sau có thể ghi lại cùng đường dẫn. Trạng thái hoàn tất đã commit cho phép ACK lại mà không ghi lại blob. Nếu poison send thành công và ACK lỗi, Azure Queue có thể nhận trùng envelope. Dùng `sourceMessageId` để nhận diện trùng.
 
-## TV1 ↔ TV3: infrastructure interfaces
+## Điều kiện tích hợp production cần TV2/TV1 xác nhận
 
-Confirm queue name, poison queue name, blob container name, managed identity access scope, Application Insights connection, metric namespace, Terraform resource names and whether alert provisioned by IaC or cloud portal.
-
-**Responsibility:** TV1 provisions through Terraform; TV3 defines detection signal, dashboard charts, failure drill, alert validation and test evidence; both review PR.
-
-## TV4 ↔ TV3: frontend and test interfaces
-
-Confirm `POST /exports`, `GET /exports/{jobId}`, success/error state model, and authenticated endpoint returning a short-lived download URL. Frontend must not receive a storage account key. TV4 should not generate SAS; TV2 owns API authorization and token generation according to current division.
-
-## Security decisions requiring group approval
-
-- Should current membership be revalidated on worker execution? Current group doc says yes.
-- What happens to a queued export if membership was revoked? Propose permanent reject with reason.
-- What is a user's permitted export scope? Beyond membership alone, agree project/task filtering.
-- How long does a processing lease last, and who can re-claim after crash?
-- How is worker's job-by-ID lookup handled with RLS? Need carefully scoped worker identity; no blanket bypass of tenant isolation.
-- If a user requests 100k tasks, use streaming/pagination, not entire `List<Task>` in memory as starter does.
+- TV2 cần cung cấp dữ liệu `requested_by` có thẩm quyền. `ExportController` hiện tạo `new ExportJob(tenantId)`; constructor chỉ gán tenant, status và thời gian. Worker demo đánh FAILED với job không có requester.
+- TV2 cần chốt bảng task, phạm vi người dùng được export và hợp đồng download.
+- TV1/TV2 cần chốt cách lookup job theo ID dưới RLS với worker role có quyền tối thiểu. Owner ở localhost có thể bypass RLS, vì vậy demo kiểm tra cô lập bằng điều kiện SQL và không dùng kết quả đó để chứng nhận role production. TV3 không triển khai quyền bypass RLS trên Azure.
+- TV1/TV2 cần chốt trạng thái job khi Queue hết retry, quyền Blob và cách phối hợp transaction producer với Queue. Demo giữ job chưa hoàn thành nếu lỗi upload khiến message đi poison.
+- Nếu có triển khai Worker Azure, cấu hình `worker,azure` cần một `ExportMessageProcessor` production trước khi có thể khởi động.
