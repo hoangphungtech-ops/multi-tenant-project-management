@@ -1,0 +1,8 @@
+### NOTE 2026-11-23T13:06:44.561+00:00  TEST START  {"nodeid": "backend_tv2/test_tv2_backend.py::test_3_db_unique_is_per_tenant"}
+
+### NOTE 2026-11-23T13:06:44.828+00:00  DB chấp nhận cùng tên ở 2 tenant  {"a": "66e37ca0-de50-4867-be20-4fad2f3b5a58", "b": "0da5a825-108e-4f80-837d-800921465858"}
+
+### NOTE 2026-11-23T13:06:44.966+00:00  DB: chèn trùng tên trong cùng tenant  {"returncode": 1, "stderr": "ERROR:  duplicate key value violates unique constraint \"uq_workspace_tenant_name\"\nDETAIL:  Key (tenant_id, name)=(11111111-1111-1111-1111-111111111111, Cloud Project db bbf3cf) already exists."}
+
+### NOTE 2026-11-23T13:06:45.230+00:00  TEST END  {}
+

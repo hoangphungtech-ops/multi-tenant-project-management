@@ -1,0 +1,158 @@
+{
+  "passed": 17,
+  "failed": 2,
+  "results": [
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_read_org_b[list B workspaces via B path]",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.027,
+      "finishedAt": "2026-11-23T13:06:43.562+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_read_org_b[read B workspace via B path]",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.009,
+      "finishedAt": "2026-11-23T13:06:43.573+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_read_org_b[read B workspace via A path]",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.01,
+      "finishedAt": "2026-11-23T13:06:43.585+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_read_org_b[read B export job via B path]",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.007,
+      "finishedAt": "2026-11-23T13:06:43.594+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_read_org_b[read B export job via A path]",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.036,
+      "finishedAt": "2026-11-23T13:06:43.632+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_read_org_b[download B export via B path]",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.008,
+      "finishedAt": "2026-11-23T13:06:43.642+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_read_org_b[download B export via A path]",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.011,
+      "finishedAt": "2026-11-23T13:06:43.655+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_modify_org_b[update B workspace via B path]",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.019,
+      "finishedAt": "2026-11-23T13:06:43.677+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_modify_org_b[update B workspace via A path]",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.062,
+      "finishedAt": "2026-11-23T13:06:43.742+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_modify_org_b[delete B workspace via B path]",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.018,
+      "finishedAt": "2026-11-23T13:06:43.762+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_modify_org_b[delete B workspace via A path]",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.024,
+      "finishedAt": "2026-11-23T13:06:43.788+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_modify_org_b[create workspace in Org B]",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.02,
+      "finishedAt": "2026-11-23T13:06:43.810+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_org_a_cannot_modify_org_b[export Org B]",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.017,
+      "finishedAt": "2026-11-23T13:06:43.829+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_guest_cannot_write",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.294,
+      "finishedAt": "2026-11-23T13:06:44.127+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_1_no_identity_is_rejected",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.016,
+      "finishedAt": "2026-11-23T13:06:44.145+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_2_revoked_membership_blocked_on_next_request",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.293,
+      "finishedAt": "2026-11-23T13:06:44.439+00:00",
+      "error": null
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_3_same_workspace_name_in_two_tenants",
+      "phase": "call",
+      "outcome": "failed",
+      "durationSec": 0.041,
+      "finishedAt": "2026-11-23T13:06:44.483+00:00",
+      "error": "A không tạo được: 500\nassert 500 == 201\n +  where 500 = <Response [500]>.status_code"
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_3_duplicate_name_in_same_tenant_is_409",
+      "phase": "call",
+      "outcome": "failed",
+      "durationSec": 0.013,
+      "finishedAt": "2026-11-23T13:06:44.555+00:00",
+      "error": "assert 500 == 201\n +  where 500 = <Response [500]>.status_code"
+    },
+    {
+      "test": "backend_tv2/test_tv2_backend.py::test_3_db_unique_is_per_tenant",
+      "phase": "call",
+      "outcome": "passed",
+      "durationSec": 0.668,
+      "finishedAt": "2026-11-23T13:06:45.230+00:00",
+      "error": null
+    }
+  ]
+}

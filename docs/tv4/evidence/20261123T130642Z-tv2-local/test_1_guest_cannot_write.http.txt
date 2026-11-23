@@ -1,0 +1,170 @@
+### NOTE 2026-11-23T13:06:43.832+00:00  TEST START  {"nodeid": "backend_tv2/test_tv2_backend.py::test_1_guest_cannot_write"}
+
+### [1] guest read OK
+# sent 2026-11-23T13:06:43.833+00:00  received 2026-11-23T13:06:43.849+00:00  (15.6 ms)
+GET http://127.0.0.1:18080/api/v1/tenants/11111111-1111-1111-1111-111111111111/workspaces
+User-Agent: python-requests/2.34.2
+Accept-Encoding: gzip, deflate
+Accept: application/json
+Connection: keep-alive
+X-Demo-User: orga-guest
+X-Demo-Tenant: 11111111-1111-1111-1111-111111111111
+X-Request-Id: tv4-A-guest-1795439203833-1
+
+--> HTTP 200 
+X-Request-Id: tv4-A-guest-1795439203833-1
+Vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Mon, 23 Nov 2026 13:06:43 GMT
+Keep-Alive: timeout=60
+Connection: keep-alive
+
+[]
+
+### [2] GUEST WRITE POST
+# sent 2026-11-23T13:06:43.979+00:00  received 2026-11-23T13:06:43.987+00:00  (7.6 ms)
+POST http://127.0.0.1:18080/api/v1/tenants/11111111-1111-1111-1111-111111111111/workspaces
+User-Agent: python-requests/2.34.2
+Accept-Encoding: gzip, deflate
+Accept: application/json
+Connection: keep-alive
+X-Demo-User: orga-guest
+X-Demo-Tenant: 11111111-1111-1111-1111-111111111111
+X-Request-Id: tv4-A-guest-1795439203979-2
+Content-Length: 29
+Content-Type: application/json
+
+{
+  "name": "guest-should-fail"
+}
+
+--> HTTP 403 
+X-Request-Id: tv4-A-guest-1795439203979-2
+Vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Mon, 23 Nov 2026 13:06:43 GMT
+Keep-Alive: timeout=60
+Connection: keep-alive
+
+{
+  "message": "Insufficient tenant role",
+  "error": "FORBIDDEN"
+}
+
+### [3] GUEST WRITE PUT
+# sent 2026-11-23T13:06:43.987+00:00  received 2026-11-23T13:06:43.994+00:00  (6.5 ms)
+PUT http://127.0.0.1:18080/api/v1/tenants/11111111-1111-1111-1111-111111111111/workspaces/8c23fcc6-1804-4732-b507-9c241e4e0540
+User-Agent: python-requests/2.34.2
+Accept-Encoding: gzip, deflate
+Accept: application/json
+Connection: keep-alive
+X-Demo-User: orga-guest
+X-Demo-Tenant: 11111111-1111-1111-1111-111111111111
+X-Request-Id: tv4-A-guest-1795439203987-3
+Content-Length: 29
+Content-Type: application/json
+
+{
+  "name": "guest-should-fail"
+}
+
+--> HTTP 403 
+X-Request-Id: tv4-A-guest-1795439203987-3
+Vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Mon, 23 Nov 2026 13:06:43 GMT
+Keep-Alive: timeout=60
+Connection: keep-alive
+
+{
+  "message": "Insufficient tenant role",
+  "error": "FORBIDDEN"
+}
+
+### [4] GUEST WRITE DELETE
+# sent 2026-11-23T13:06:43.994+00:00  received 2026-11-23T13:06:44.001+00:00  (6.7 ms)
+DELETE http://127.0.0.1:18080/api/v1/tenants/11111111-1111-1111-1111-111111111111/workspaces/8c23fcc6-1804-4732-b507-9c241e4e0540
+User-Agent: python-requests/2.34.2
+Accept-Encoding: gzip, deflate
+Accept: application/json
+Connection: keep-alive
+X-Demo-User: orga-guest
+X-Demo-Tenant: 11111111-1111-1111-1111-111111111111
+X-Request-Id: tv4-A-guest-1795439203994-4
+Content-Length: 0
+
+--> HTTP 403 
+X-Request-Id: tv4-A-guest-1795439203994-4
+Vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Mon, 23 Nov 2026 13:06:43 GMT
+Keep-Alive: timeout=60
+Connection: keep-alive
+
+{
+  "message": "Insufficient tenant role",
+  "error": "FORBIDDEN"
+}
+
+### [5] GUEST WRITE POST
+# sent 2026-11-23T13:06:44.001+00:00  received 2026-11-23T13:06:44.007+00:00  (5.5 ms)
+POST http://127.0.0.1:18080/api/v1/tenants/11111111-1111-1111-1111-111111111111/exports
+User-Agent: python-requests/2.34.2
+Accept-Encoding: gzip, deflate
+Accept: application/json
+Connection: keep-alive
+X-Demo-User: orga-guest
+X-Demo-Tenant: 11111111-1111-1111-1111-111111111111
+X-Request-Id: tv4-A-guest-1795439204001-5
+Content-Length: 0
+
+--> HTTP 403 
+X-Request-Id: tv4-A-guest-1795439204001-5
+Vary: Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+X-Content-Type-Options: nosniff
+X-XSS-Protection: 0
+Cache-Control: no-cache, no-store, max-age=0, must-revalidate
+Pragma: no-cache
+Expires: 0
+X-Frame-Options: DENY
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Mon, 23 Nov 2026 13:06:44 GMT
+Keep-Alive: timeout=60
+Connection: keep-alive
+
+{
+  "message": "Insufficient tenant role",
+  "error": "FORBIDDEN"
+}
+
+### NOTE 2026-11-23T13:06:44.128+00:00  TEST END  {}
+
