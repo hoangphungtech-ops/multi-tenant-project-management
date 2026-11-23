@@ -14,7 +14,7 @@ public final class QueueMessageContractParser {
     private static final int SUPPORTED_SCHEMA_VERSION = 1;
     private static final int MAX_BODY_LENGTH = 16 * 1024;
     private static final Set<String> ALLOWED_FIELDS =
-            Set.of("schemaVersion", "jobId", "claimedTenantId", "requestId");
+            Set.of("schemaVersion", "jobId", "claimedTenantId", "requestId", "tenantId");
 
     private final ObjectMapper objectMapper;
 
@@ -31,6 +31,9 @@ public final class QueueMessageContractParser {
         try (JsonParser jsonParser = objectMapper.getFactory().createParser(body)) {
             jsonParser.enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION);
             root = objectMapper.readTree(jsonParser);
+            if (jsonParser.nextToken() != null) {
+                throw new QueueMessageContractException("INVALID_JSON");
+            }
         } catch (IOException ex) {
             throw new QueueMessageContractException("INVALID_JSON");
         }
@@ -46,6 +49,14 @@ public final class QueueMessageContractParser {
         }
 
         JsonNode version = root.get("schemaVersion");
+        if (version == null && root.size() == 2 && root.has("tenantId")) {
+            UUID jobId = requiredUuid(root.get("jobId"), "MISSING_JOB_ID", "INVALID_JOB_ID");
+            UUID tenantId = requiredUuid(root.get("tenantId"), "INVALID_TENANT_ID", "INVALID_TENANT_ID");
+            return new ExportQueueMessage(0, jobId, tenantId, null);
+        }
+        if (root.has("tenantId")) {
+            throw new QueueMessageContractException("UNKNOWN_MESSAGE_FIELD");
+        }
         if (version == null || !version.isIntegralNumber() || !version.canConvertToInt()
                 || version.intValue() != SUPPORTED_SCHEMA_VERSION) {
             throw new QueueMessageContractException("UNSUPPORTED_SCHEMA_VERSION");

@@ -1,35 +1,19 @@
-# TV3 Observability & Failure Drill — planned (not deployed)
+﻿# Observability và failure drill TV3
 
-## Suggested four dashboard charts
-1. **Export Jobs by Result:** success / transient failure / security rejection over time.
-2. **Tenant Mismatch Detection:** `worker_tenant_mismatch_total` counter (alert signal).
-3. **Worker Processing Duration:** p95 export job processing duration (not HTTP p95).
-4. **Queue/Retry Health:** retry counts, poison queue length or oldest message age.
+Worker phát JSON theo Logstash format. Poller gắn `correlationId` local cho từng lượt nhận và `jobId` dạng UUID. Khi DB tra thành công, log kiểm tra scope hoặc từ chối ghi `tenantId` có thẩm quyền. Giá trị `requestId` gửi từ Queue không được ghi trực tiếp vì nó có thể chứa dữ liệu nhạy cảm. Log lỗi xử lý chỉ dùng tên loại lỗi. Payload Queue, JWT, mật khẩu và SAS không được đưa vào các log sự kiện TV3.
 
-> Microsoft Application Insights Java agent can autocollect Micrometer counters and Spring Boot Actuator metrics. Confirm emitted metric names in the actual workspace before writing alert filters. Avoid putting jobId or tenantId into metrics dimensions; use them in controlled logs instead to limit cardinality and cost.
+## Application Insights
 
-## Proposed sanitized JSON log
-```json
-{"level":"WARN","event":"worker_tenant_mismatch","requestId":"req-123","jobId":"job-a","authoritativeTenantId":"tenant-a","result":"REJECTED"}
-```
-Log actual IDs ONLY according to team's privacy policy; do not log access tokens, passwords, connection strings, SAS, CSV content, raw queue payload or exception messages that might include secrets.
+Dùng Application Insights Java 3.x agent của App Service hoặc chạy JVM với `-javaagent:<path-to-agent-jar>`. Đặt `APPLICATIONINSIGHTS_CONNECTION_STRING` qua cấu hình đã được TV1 cấp, `APPLICATIONINSIGHTS_CONFIGURATION_FILE` trỏ đến `observability/applicationinsights.json`. Cấu hình dùng role `tv3-export-worker` và bật thu log INFO. [Cấu hình Java agent của Microsoft](https://learn.microsoft.com/en-us/azure/azure-monitor/app/java-standalone-config)
 
-## Failure drill recipe
-1. Seed two independent tenants A and B; create export_job A in DB.
-2. Enqueue message for job A but claim tenant B.
-3. Expect: `DROP_FORGED`, no task SELECT for tenant B, no private CSV produced, legitimate job A remains pending.
-4. Expect: sanitized warning log, counter increment and alert condition met.
-5. Verify Action Group email arrived; record real creation/ingestion/evaluation/receipt timestamps.
-6. Re-enqueue correct claim A and verify normal success (no permanent denial-of-service).
+Import `observability/workbook.json` qua Azure Monitor Workbooks Advanced Editor và chọn Log Analytics workspace liên kết với Application Insights. Workbook chứa bốn biểu đồ 24 giờ theo cửa sổ 5 phút: kết quả xử lý delivery, p95 của lượt xử lý thành công (có cả ACK lại), số lần phát hiện tenant sai, và lỗi polling. Các số liệu này là của Worker. Ngưỡng k6 dùng cho HTTP API. [Biểu đồ trong Azure Workbooks](https://learn.microsoft.com/en-us/azure/azure-monitor/platform/workbooks-chart-visualizations)
 
-## Alert design notes
-- TV3 supplies metric name and condition; TV1 manages Terraform alert and Action Group.
-- Alert delivery time is not guaranteed to be 1–2 minutes; measure it.
-- Azure Storage Queue does **not** offer automatic dead-lettering. Consumer moves poison messages after a dequeue-count threshold.
-- K6 HTTP p95 and Worker processing p95 are **different measurements**.
+`infra/monitoring.tf` tại main đã khai báo Metric Alert `alert-worker-forged-tenant-mismatch` và Action Group email. Alert dùng `worker_tenant_mismatch_total`, Total > 0 trong 5 phút, kiểm tra mỗi phút. Worker demo tăng counter cùng tên. Sau khi môi trường Azure sẵn sàng, xác minh metric thực sự có mặt trong Metrics Explorer và đúng namespace/aggregation trước khi kết luận rule hoạt động. Địa chỉ email do TV1 cấu hình từ `alert_email`.
 
-## Sources
-- https://learn.microsoft.com/en-us/azure/app-service/monitor-app-service
-- https://learn.microsoft.com/en-us/azure/azure-monitor/app/java-standalone-config
-- https://learn.microsoft.com/en-us/azure/service-bus-messaging/service-bus-azure-and-service-bus-queues-compared-contrasted
-- https://grafana.com/docs/k6/latest/using-k6/thresholds/
+## Drill
+
+1. Chạy `demo.ps1 -Action Verify`. Test tạo hai tenant, job hợp lệ của A, rồi gửi Queue message có job của A nhưng claim B.
+2. Xác minh poison chứa `TENANT_MISMATCH` và source message ID, job còn PENDING và Blob chưa tồn tại. Sau đó gửi claim đúng và kiểm tra CSV chỉ chứa workspace của A.
+3. Khi có môi trường Azure được phép, dùng fixture riêng của môi trường đó. Đối chiếu JSON log, custom metric, lịch sử Fired của rule và email Action Group. Lưu timestamp/correlation ID của lần đo, không đưa connection string, token hoặc SAS vào bằng chứng.
+
+Local drill chạy qua PostgreSQL/Azurite trong test tích hợp. Ingestion Azure, Workbook đã deploy, trạng thái Fired và email cần kiểm tra trên tenant Azure đã cấp quyền.

@@ -13,3 +13,11 @@ management:
     health:
       enabled: true
       show-details: never
+
+logging:
+  structured:
+    format:
+      console: logstash
+  level:
+    com.azure: WARN
+    org.postgresql: WARN

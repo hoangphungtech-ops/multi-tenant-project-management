@@ -1,0 +1,60 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppTraces\n| where TimeGenerated > ago(24h) and AppRoleName == \"tv3-export-worker\"\n| where Message startswith \"export_processing_result \"\n| extend Outcome = extract(@\"outcome=([A-Z_]+)\", 1, Message)\n| summarize Deliveries=sum(ItemCount) by bin(TimeGenerated, 5m), Outcome",
+        "size": 0,
+        "title": "Export delivery outcomes",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "timechart"
+      },
+      "name": "query - 1"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppTraces\n| where TimeGenerated > ago(24h) and AppRoleName == \"tv3-export-worker\"\n| where Message startswith \"export_processing_result outcome=DURABLY_COMPLETED\"\n| extend DurationMs = tolong(extract(@\"durationMs=([0-9]+)\", 1, Message))\n| summarize P95Ms=percentile(DurationMs, 95) by bin(TimeGenerated, 5m)",
+        "size": 0,
+        "title": "Export processing p95 (ms)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "timechart"
+      },
+      "name": "query - 2"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppTraces\n| where TimeGenerated > ago(24h) and AppRoleName == \"tv3-export-worker\"\n| where Message == \"export_tenant_mismatch\"\n| summarize Rejections=sum(ItemCount) by bin(TimeGenerated, 5m)",
+        "size": 0,
+        "title": "Forged tenant rejections",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "timechart"
+      },
+      "name": "query - 3"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "AppTraces\n| where TimeGenerated > ago(24h) and AppRoleName == \"tv3-export-worker\"\n| where Message startswith \"event=worker_poll_failed \"\n| summarize Failures=sum(ItemCount) by bin(TimeGenerated, 5m)",
+        "size": 0,
+        "title": "Queue polling failures",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "timechart"
+      },
+      "name": "query - 4"
+    }
+  ],
+  "fallbackResourceIds": [
+    "Azure Monitor"
+  ]
+}

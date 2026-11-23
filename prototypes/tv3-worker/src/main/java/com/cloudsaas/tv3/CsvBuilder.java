@@ -14,7 +14,7 @@ public final class CsvBuilder {
         }
         return csv.toString();
     }
-    private static String cell(String input) {
+    public static String cell(String input) {
         String val = input == null ? "" : input;
         String trimmed = val.stripLeading();
         if (!trimmed.isEmpty() && (trimmed.charAt(0) == '=' || trimmed.charAt(0) == '+'

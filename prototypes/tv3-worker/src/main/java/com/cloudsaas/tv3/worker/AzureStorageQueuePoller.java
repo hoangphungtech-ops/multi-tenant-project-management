@@ -3,6 +3,7 @@ package com.cloudsaas.tv3.worker;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -11,8 +12,12 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public final class AzureStorageQueuePoller implements ExportQueuePoller {
+    private static final Logger log = LoggerFactory.getLogger(AzureStorageQueuePoller.class);
     private final QueueStorageOperations queues;
     private final QueueStorageProperties properties;
     private final QueueMessageContractParser parser;
@@ -49,6 +54,15 @@ public final class AzureStorageQueuePoller implements ExportQueuePoller {
             return PollResult.MESSAGE_HANDLED;
         }
 
+        try (var jobId = MDC.putCloseable("jobId", parsed.jobId().toString());
+                var correlationId = MDC.putCloseable("correlationId", UUID.randomUUID().toString())) {
+            return process(message, messageId, popReceipt, body, parsed);
+        }
+    }
+
+    private PollResult process(QueueDelivery message, String messageId, String popReceipt,
+            String body, ExportQueueMessage parsed) {
+        long started = System.nanoTime();
         MessageProcessingDecision decision;
         String retryErrorCode = "RETRY_LIMIT_EXCEEDED";
         MessageVisibilityLease lease = new MessageVisibilityLease(message, body);
@@ -62,7 +76,14 @@ public final class AzureStorageQueuePoller implements ExportQueuePoller {
         }
         popReceipt = lease.popReceipt();
 
+        long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
+        log.atInfo().addKeyValue("outcome", decision).addKeyValue("durationMs", durationMs)
+                .log("export_processing_result outcome={} durationMs={}", decision, durationMs);
         return switch (decision) {
+            case POISON_TENANT_MISMATCH -> {
+                moveToPoison(message, messageId, popReceipt, "TENANT_MISMATCH");
+                yield PollResult.MESSAGE_HANDLED;
+            }
             case DURABLY_COMPLETED, DURABLY_REJECTED -> {
                 queues.delete(messageId, popReceipt);
                 yield PollResult.MESSAGE_HANDLED;

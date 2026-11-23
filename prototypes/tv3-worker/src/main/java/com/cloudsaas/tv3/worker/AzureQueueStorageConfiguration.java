@@ -13,25 +13,25 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 @EnableConfigurationProperties(QueueStorageProperties.class)
 public class AzureQueueStorageConfiguration {
-    @Bean(name = "exportQueueClient", destroyMethod = "close")
+    @Bean(name = "exportQueueClient")
     @Profile("worker & azurite")
     QueueClient azuriteExportQueueClient(QueueStorageProperties properties) {
         return createAzuriteClient(properties, properties.queueName());
     }
 
-    @Bean(name = "poisonQueueClient", destroyMethod = "close")
+    @Bean(name = "poisonQueueClient")
     @Profile("worker & azurite")
     QueueClient azuritePoisonQueueClient(QueueStorageProperties properties) {
         return createAzuriteClient(properties, properties.poisonQueueName());
     }
 
-    @Bean(name = "exportQueueClient", destroyMethod = "close")
+    @Bean(name = "exportQueueClient")
     @Profile("worker & azure")
     QueueClient azureExportQueueClient(QueueStorageProperties properties) {
         return createManagedIdentityClient(properties, properties.queueName());
     }
 
-    @Bean(name = "poisonQueueClient", destroyMethod = "close")
+    @Bean(name = "poisonQueueClient")
     @Profile("worker & azure")
     QueueClient azurePoisonQueueClient(QueueStorageProperties properties) {
         return createManagedIdentityClient(properties, properties.poisonQueueName());

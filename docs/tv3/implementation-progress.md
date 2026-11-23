@@ -64,3 +64,7 @@ Phase 0 audit and plan are recorded in [implementation-plan.md](./implementation
 2. Implement `ExportMessageProcessor` against TV2's authoritative job/membership/task schema and RLS/lease semantics; until then the Worker intentionally does not start processing.
 3. Use a reachable Docker Engine/Azurite to verify connection profiles, queue creation, visibility update, and source/poison ACK behavior end to end.
 4. Re-run a runtime check on Java 21 when that JDK is available.
+
+## Cập nhật ngày 23/11/2026
+
+Đã kiểm tra mã TV2 mới trên `origin/main` và xác minh Worker demo trên PostgreSQL/Azurite. Tham chiếu bản mới nhất ở [báo cáo kiểm thử](test-report.md), [báo cáo cuối kỳ](final-report.md) và [hợp đồng TV2](../../prototypes/tv3-worker/docs/CONTRACT_TO_CONFIRM.md). Các mục trên trang này ghi lại trạng thái ngày 16/11.
